@@ -26,7 +26,7 @@ T相当于B+T的缩写。例如：输入 `cal 700 30s` 相当于 `cal 700 700+30
 | --- | --- | --- |
 | B | cal 1500 | boss血量=1500w<br>刀数 / 满补所需伤害<br>1刀 &nbsp;&nbsp;&nbsp; 64285715<br>2刀 &nbsp;&nbsp;&nbsp; 12162163<br>3刀 &nbsp;&nbsp;&nbsp; 6716418<br>4刀 &nbsp;&nbsp;&nbsp; 4639176 |
 | B D | cal 400 700 | boss血量=400w<br>对boss伤害=700w<br>补偿59s<br>垫入2366667伤害可满补 |
-| | cal 700 400 | boss血量=700w<br>对boss伤害=400w<br>若400w先出，后出刀需12857143伤害（高于boss血量）才能满补<br>若400w后出，先出刀需6066667伤害可满补 |
+| | cal 700 400 | boss血量=700w<br>对boss伤害=400w<br>若400w先出，后出刀需12857143伤害（高于boss血量）才能满补<br>若400w后出，先出刀需6066667伤害可满补<br>若两人合刀，则补偿43秒 |
 | B T | cal 700 30s | boss血量=700w<br>对boss伤害=700w余30s<br>使用了60s，返还50s<br>需返还61s以一穿二，还需垫入1166667伤害<br>垫入4550001伤害可满补 |
 | B DT | cal 700 800+55s | boss血量=700w<br>对boss伤害=800w余55s<br>使用了35s，返还80s<br>垫入2200001伤害可满补 |
 | B E | cal 700 30s | boss血量=700w<br>期望返还时间=30s<br>刀数 / 所需伤害<br>1刀 &nbsp;&nbsp;&nbsp; 7777778<br>2刀 &nbsp;&nbsp;&nbsp; 3684211<br>3刀 &nbsp;&nbsp;&nbsp; 2413794 |

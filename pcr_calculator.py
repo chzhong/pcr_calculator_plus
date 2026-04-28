@@ -103,6 +103,13 @@ def B(raw_packs: List[Pack]) -> Output:
 
 def B_DT(raw_packs: List[Pack]) -> Output:
     pack_types = "B_DT"
+    def 两人合刀补偿(boss血量: int, 单刀伤害: int) -> Union[int, None]:
+        if 单刀伤害 >= boss血量:
+            return None
+        if 单刀伤害 * 2 < boss血量:
+            return None
+        return min(90, solve_equation("x", boss血量 - 单刀伤害, 单刀伤害))
+
     def _(b: PackB, dt: PackDT) -> Output:
         output = [str(b), str(dt)]
         if dt.T is None: # B_D
@@ -114,6 +121,9 @@ def B_DT(raw_packs: List[Pack]) -> Output:
                     output.append(f'若{dt.D // 10000}w先出，后出刀需{另一刀后出}伤害可满补')
                 另一刀先出 = solve_equation(89+delta, f'{b.D}-x', dt.D)
                 output.append(f'若{dt.D // 10000}w后出，先出刀需{另一刀先出}伤害可满补')
+                合刀补偿 = 两人合刀补偿(b.D, dt.D)
+                if 合刀补偿 is not None:
+                    output.append(f'若两人合刀，则补偿{合刀补偿}秒')
             else: # cal 400 700
                 e = min(solve_equation('x', b.D, dt.D), 90)
                 output.append(f'补偿{e}s')
