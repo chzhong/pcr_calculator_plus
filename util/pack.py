@@ -51,7 +51,7 @@ class Pack():
             return True
         try:
             cls(pack)
-        except PackInvaildException as e:
+        except PackInvaildException:
             return False
         return True
 
@@ -123,10 +123,10 @@ class PackE(Pack):
 def from_string(s: str) -> Pack:
     """
     将伤害从字符串反序列化为对象
-    D可接受的格式: 1000 1000w 1000W 1000万 10000000 1500-500
+    D可接受的格式: 1000 1000w 1000W 1000万 1e 1亿 1k 1m 10000000 1500-500
     T可接受的格式：30 30s 30S 15+15
     T相当于B+T的缩写。例如：cal 700 30s == cal 700 700+30s
-    当无量纲时，≥1w被识别为伤害，(90, 1w)被识别为伤害且自动×1w，≤90被识别为秒数
+    当无量纲时，(90, 100w)被识别为伤害且自动×1w，≤90被识别为秒数
     如需同时传入D和T，应使用加号。举例：“800+55s”
     
     
@@ -141,10 +141,25 @@ def from_string(s: str) -> Pack:
     """        
     
     def auto_d(d: int) -> int:
-        return d * 10000 if d < 10000 else d
+        # 无量纲伤害在 (90, 100w) 区间时，按“万”为单位自动换算
+        return d * 10000 if 90 < d < 100 * 10000 else d
+
+    def parse_damage_expr(expr: str, raw: str) -> int:
+        expr = re.sub(r'(\d+)w', r'(\1*10000)', expr)
+        expr = re.sub(r'(\d+)e', r'(\1*100000000)', expr)
+        expr = re.sub(r'(\d+)k', r'(\1*1000)', expr)
+        expr = re.sub(r'(\d+)m', r'(\1*1000000)', expr)
+        try:
+            d = int(eval(expr))
+        except Exception:
+            raise PackInvaildException(f'无法将[{raw}]解析为伤害')
+        return d
 
     original_input = s
     s = re.sub(r'[wW万]', 'w', s)
+    s = re.sub(r'[eE亿]', 'e', s)
+    s = re.sub(r'[kK]', 'k', s)
+    s = re.sub(r'[mM]', 'm', s)
     s = re.sub(r'[sS秒]', 's', s)
 
 
@@ -160,24 +175,19 @@ def from_string(s: str) -> Pack:
     if 's' in s:
         try:
             t = int(eval(s.replace('s', '')))
-        except Exception as e:
+        except Exception:
             raise PackInvaildException(f'无法将[{original_input}]解析为时间')
         else:
             return Pack(T=t)
 
     # D
-    if 'w' in s:
-        try:
-            d = int(eval(s.replace('w', '0000')))
-        except Exception as e:
-            raise PackInvaildException(f'无法将[{original_input}]解析为伤害')
-        else:
-            return Pack(D=auto_d(d))
+    if any(unit in s for unit in ('w', 'e', 'k', 'm')):
+        return Pack(D=parse_damage_expr(s, original_input))
 
     # 无量纲
     try:
         i = int(eval(s))
-    except Exception as e:
+    except Exception:
         raise PackInvaildException(f'无法将[{original_input}]解析为伤害')
     else:
         return Pack(T=i) if i <= 90 else Pack(D=auto_d(i))
