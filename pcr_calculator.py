@@ -1,5 +1,6 @@
 # python base
 import math
+import re
 from pathlib import Path
 from typing import List, Union
 
@@ -25,13 +26,47 @@ async def send_help(bot: HoshinoBot, ev: CQEvent):
     )
 
 
+def is_likely_casual_chat(remainder: str) -> bool:
+    """
+    判断前缀后的剩余文本更像普通聊天，而非失败的命令参数。
+
+    静默场景：
+    - 空串 / 不含数字（如「合刀」「合刀了」「合刀吗」）
+    - 含数字但夹在自然语言中（如「……掉3刀」），而非空格分隔的参数列表
+    """
+    text = remainder.strip()
+    if not text:
+        return True
+    if not re.search(r"\d", text):
+        return True
+
+    # 命令参数通常是空格分隔、由数字/运算符/已知量纲组成的 token
+    pack_like = re.compile(r"^[\d+\-*/().wWeEkKmMsS万亿秒]+$")
+    tokens = text.split()
+    if tokens and all(pack_like.fullmatch(t) for t in tokens):
+        return False
+    return True
+
+
+@sv.on_fullmatch(["合刀帮助", "尾刀计算帮助", "cal帮助"])
+async def pcr_calculator_help(bot: HoshinoBot, ev: CQEvent):
+    await send_help(bot, ev)
+
+
 @sv.on_prefix(["尾刀计算", "cal", "合刀"])
 async def pcr_calculator_interface(bot: HoshinoBot, ev: CQEvent):
     msg = ev.message.extract_plain_text().strip()
-    if len(msg) == 0:
-        await send_help(bot, ev)
+    if not msg:
+        # 「合刀」等为常见聊天前缀，单独出现时不打扰
         return
-    await bot.send(ev, pcr_calculator(msg).ToString(sep="\n\n"))
+    result = pcr_calculator(msg)
+    text = result.ToString(sep="\n\n")
+    if not text:
+        return
+    # 解析失败时：若更像普通发言则静默，避免干扰聊天
+    if result.Result.value >= OutputFlag.Error.value and is_likely_casual_chat(msg):
+        return
+    await bot.send(ev, text)
 
 
 def try_prase(raw_packs: List[Pack], pack_types: str) -> Union[list, None]:
