@@ -15,6 +15,7 @@ from sympy import Eq, parse_expr, solve, symbols
 # relative
 from .util.output import *
 from .util.pack import *
+from .util.timeline import convert_bonus_seconds, convert_seconds
 
 gs_current_dir = Path(__file__).parent
 sv = Service("pcr_calculator")
@@ -41,7 +42,7 @@ def is_likely_casual_chat(remainder: str) -> bool:
         return True
 
     # 命令参数通常是空格分隔、由数字/运算符/已知量纲组成的 token
-    pack_like = re.compile(r"^[\d+\-*/().wWeEkKmMsS万亿秒]+$")
+    pack_like = re.compile(r"^[\dA-Za-z+\-*/().:万亿秒]+$")
     tokens = text.split()
     if tokens and all(pack_like.fullmatch(t) for t in tokens):
         return False
@@ -51,6 +52,16 @@ def is_likely_casual_chat(remainder: str) -> bool:
 @sv.on_fullmatch(["合刀帮助", "尾刀计算帮助", "cal帮助"])
 async def pcr_calculator_help(bot: HoshinoBot, ev: CQEvent):
     await send_help(bot, ev)
+
+
+@sv.on_prefix(["转秒"])
+async def convert_seconds_interface(bot: HoshinoBot, ev: CQEvent):
+    await bot.send(ev, convert_seconds(ev.message.extract_plain_text()))
+
+
+@sv.on_prefix(["转补秒"])
+async def convert_bonus_seconds_interface(bot: HoshinoBot, ev: CQEvent):
+    await bot.send(ev, convert_bonus_seconds(ev.message.extract_plain_text()))
 
 
 @sv.on_prefix(["尾刀计算", "cal", "合刀"])
@@ -349,12 +360,17 @@ def B_DT_E(raw_packs: List[Pack]) -> Output:
 
 
 def pcr_calculator(s: str) -> Outputs:
+    format_hint = ("常用格式：B D D（boss当前血量、第一刀伤害、第二刀伤害），"
+                   "如 cal 700 500 600；B D（boss当前血量、单刀伤害），"
+                   "如 cal 700 400。发送“合刀帮助”查看完整帮助。")
+    numeric_hint = ("支持整数、伤害单位 w/W/万、e/E/亿、k/K、m/M，"
+                    "以及四则运算表达式；时间可写为 30s、30S、30秒。")
     packs: List[Pack] = []
     for raw_pack in s.split():
         try:
             packs.append(from_string(raw_pack))
         except PackInvaildException as e:
-            return Outputs.FromStr(OutputFlag.Error, f"无法解析[{raw_pack}]: {e}")
+            return Outputs.FromStr(OutputFlag.Error, f"无法解析[{raw_pack}]: {e}\n{numeric_hint}")
     outputs = Outputs(showFlag=False)
     if len(packs) == 1:
         outputs += B(packs)
@@ -371,6 +387,10 @@ def pcr_calculator(s: str) -> Outputs:
 例：boss血量1000w，当前有一刀750w，一刀700w，求再垫入多少伤害可以获得85s补偿：\n
 cal 1000-750 700 85s""".strip(),
         )
+    if not outputs.outputs or all(x.flag == OutputFlag.Empty for x in outputs.outputs):
+        return Outputs.FromStr(OutputFlag.Error, f"无法识别参数组合。\n{format_hint}")
+    if len(packs) >= 4:
+        outputs.append(OutputFlag.Info, format_hint)
     return outputs
 
 
