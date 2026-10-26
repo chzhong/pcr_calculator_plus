@@ -18,13 +18,12 @@ from .util.pack import *
 from .util.timeline import convert_bonus_seconds, convert_seconds
 
 gs_current_dir = Path(__file__).parent
-sv = Service("pcr_calculator")
+help_image = f"file:///{gs_current_dir / 'data' / 'help.png'}"
+sv = Service("pcr_calculator", help_=f"[CQ:image,file={help_image}]", bundle="pcr查询")
 
 
 async def send_help(bot: HoshinoBot, ev: CQEvent):
-    await bot.send(
-        ev, MessageSegment.image(f"file:///{gs_current_dir / 'data' / 'help.png'}")
-    )
+    await bot.send(ev, MessageSegment.image(help_image))
 
 
 def is_likely_casual_chat(remainder: str) -> bool:
@@ -49,7 +48,7 @@ def is_likely_casual_chat(remainder: str) -> bool:
     return True
 
 
-@sv.on_fullmatch(["合刀帮助", "尾刀计算帮助", "cal帮助"])
+@sv.on_fullmatch(["合刀帮助", "尾刀计算帮助", "cal帮助", "转秒帮助", "转补秒帮助"])
 async def pcr_calculator_help(bot: HoshinoBot, ev: CQEvent):
     await send_help(bot, ev)
 
