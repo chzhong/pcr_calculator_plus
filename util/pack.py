@@ -1,4 +1,5 @@
 import re
+from decimal import Decimal
 
 class PackInvaildException(Exception):
     pass
@@ -123,7 +124,7 @@ class PackE(Pack):
 def from_string(s: str) -> Pack:
     """
     将伤害从字符串反序列化为对象
-    D可接受的格式: 1000 1000w 1000W 1000万 1e 1亿 1k 1m 10000000 1500-500
+    D可接受的格式: 1000 1000w 1000W 1000万 1e 1.5亿 1k 1m 10000000 1500-500
     T可接受的格式：30 30s 30S 15+15
     T相当于B+T的缩写。例如：cal 700 30s == cal 700 700+30s
     当无量纲时，(90, 100w)被识别为伤害且自动×1w，≤90被识别为秒数
@@ -145,8 +146,14 @@ def from_string(s: str) -> Pack:
         return d * 10000 if 90 < d < 100 * 10000 else d
 
     def parse_damage_expr(expr: str, raw: str) -> int:
+        def replace_yi(match):
+            damage = Decimal(match[1]) * 100000000
+            if damage != damage.to_integral_value():
+                raise PackInvaildException(f'[{raw}]换算后不是整数伤害')
+            return str(int(damage))
+
         expr = re.sub(r'(\d+)w', r'(\1*10000)', expr)
-        expr = re.sub(r'(\d+)e', r'(\1*100000000)', expr)
+        expr = re.sub(r'(\d+(?:\.\d+)?)e', replace_yi, expr)
         expr = re.sub(r'(\d+)k', r'(\1*1000)', expr)
         expr = re.sub(r'(\d+)m', r'(\1*1000000)', expr)
         try:
@@ -170,6 +177,9 @@ def from_string(s: str) -> Pack:
         d = auto_d(int(match[1]))
         t = int(match[2])
         return Pack(d, t)
+    decimal_yi_dt = re.fullmatch(r'(\d+(?:\.\d+)?e)\+(\d+)s', s)
+    if decimal_yi_dt:
+        return Pack(parse_damage_expr(decimal_yi_dt[1], original_input), int(decimal_yi_dt[2]))
 
     # T
     if 's' in s:
@@ -207,4 +217,4 @@ if __name__ == "__main__":
         print(f'Error: {e}')
     else:
         print(pack_b)
-    
+

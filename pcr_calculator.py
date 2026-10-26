@@ -362,7 +362,7 @@ def pcr_calculator(s: str) -> Outputs:
     format_hint = ("常用格式：B D D（boss当前血量、第一刀伤害、第二刀伤害），"
                    "如 cal 700 500 600；B D（boss当前血量、单刀伤害），"
                    "如 cal 700 400。发送“合刀帮助”查看完整帮助。")
-    numeric_hint = ("支持整数、伤害单位 w/W/万、e/E/亿、k/K、m/M，"
+    numeric_hint = ("支持整数、伤害单位 w/W/万、e/E/亿（可用小数，如1.5亿）、k/K、m/M，"
                     "以及四则运算表达式；时间可写为 30s、30S、30秒。")
     packs: List[Pack] = []
     for raw_pack in s.split():
